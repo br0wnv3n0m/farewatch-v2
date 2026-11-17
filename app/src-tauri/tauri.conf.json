@@ -24,11 +24,6 @@
       "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost https://*.workers.dev"
     }
   },
-  "plugins": {
-    "shell": {
-      "open": "^https://www\\.google\\.com/travel/flights/"
-    }
-  },
   "bundle": {
     "active": true,
     "targets": ["nsis"],

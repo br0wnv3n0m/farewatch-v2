@@ -15,6 +15,9 @@
     },
     "shell:allow-stdin-write",
     "shell:allow-kill",
-    "shell:allow-open"
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://www.google.com/travel/flights/*" }]
+    }
   ]
 }

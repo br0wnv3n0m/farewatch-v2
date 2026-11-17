@@ -1,6 +1,7 @@
 // Desktop (Tauri) backend. The ONLY file that talks to Tauri.
 // Lookup -> local Python engine (sidecar). Watches, saved lookups, settings -> watch server.
-import { Command, open } from '@tauri-apps/plugin-shell';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { Command } from '@tauri-apps/plugin-shell';
 import { createLineParser } from './lineParser';
 import { createServerClient, syncedSettings } from './serverClient';
 import type { Backend, EngineInfo, LookupEvent } from './types';
@@ -54,7 +55,7 @@ export const desktopBackend: Backend = {
 
   loadSettings: syncedSettings.load,
   saveSettings: syncedSettings.save,
-  // Allowed URLs are limited in tauri.conf.json (plugins.shell.open) to Google Flights.
-  openLink: (url) => open(url),
+  // Allowed URLs are limited in capabilities/default.json to Google Flights.
+  openLink: (url) => openUrl(url),
   server: createServerClient('Farewatch PC'),
 };

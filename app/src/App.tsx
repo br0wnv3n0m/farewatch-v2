@@ -45,6 +45,7 @@ export default function App({ backend, initialSettings }: { backend: Backend; in
   const [airline, setAirline] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const [draft, setDraft] = useState<WatchInput | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const handle = useRef<LookupHandle | null>(null);
   const pendingSave = useRef(false); // a live lookup is running and should be saved when it ends
   const completed = useRef(false);
@@ -195,6 +196,11 @@ export default function App({ backend, initialSettings }: { backend: Backend; in
     setTab('watches');
   };
   const onDraftUsed = useCallback(() => setDraft(null), []);
+  // Open a booking link outside the app; show why if it fails.
+  const openLink = useCallback((url: string) => {
+    setLinkError(null);
+    backend.openLink(url).catch((e: unknown) => setLinkError(`Could not open the browser: ${e instanceof Error ? e.message : String(e)}`));
+  }, [backend]);
   const signedIn = backend.server.connection().signedIn;
 
   return (
@@ -212,6 +218,7 @@ export default function App({ backend, initialSettings }: { backend: Backend; in
       </header>
 
       <main>
+        {linkError && <p className="banner warn">{linkError}</p>}
         {tab === 'lookup' && (
           <>
             {!backend.canLookup && <SavedLookups key={serverTick} server={backend.server} refreshKey={savedTick} onOpen={openSaved} />}
@@ -257,7 +264,7 @@ export default function App({ backend, initialSettings }: { backend: Backend; in
                   </div>
                 )}
                 {shownCell && shownCell.status !== 'pending' && (
-                  <FlightDetails options={visibleOptions(shownCell, airline)} currency={currency} message={shownCell.status === 'error' ? shownCell.message : undefined} trip={request ? { ...request, currency } : undefined} onOpenLink={(url) => void backend.openLink(url)} />
+                  <FlightDetails options={visibleOptions(shownCell, airline)} currency={currency} message={shownCell.status === 'error' ? shownCell.message : undefined} trip={request ? { ...request, currency } : undefined} onOpenLink={openLink} />
                 )}
               </section>
             )}
@@ -271,7 +278,7 @@ export default function App({ backend, initialSettings }: { backend: Backend; in
             draft={draft}
             onDraftUsed={onDraftUsed}
             onOpenSettings={() => setTab('settings')}
-            onOpenLink={(url) => void backend.openLink(url)}
+            onOpenLink={openLink}
           />
         )}
         {tab === 'settings' && (

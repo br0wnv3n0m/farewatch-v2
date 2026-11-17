@@ -5,6 +5,8 @@
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        // Opens Google Flights booking links in the system browser (scope: capabilities/default.json).
+        .plugin(tauri_plugin_opener::init())
         .run(tauri::generate_context!())
         .expect("error while running Farewatch");
 }

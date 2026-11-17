@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { DateRange, TripSearch } from '../backend/types';
 import { addDays } from '../lib/format';
 import { CountryPicker } from './CountryPicker';
+import { NumberInput } from './NumberInput';
 
 /** Number of leave/return combos (return on or after leaving). */
 export function countCombos(r: { outDates: DateRange; backDates: DateRange | null }): number {
@@ -82,11 +83,11 @@ export function TripFields<T extends TripSearch>({ value: r, onChange: set }: Pr
       <div className="row">
         <label className="field small">
           <span className="label">Adults</span>
-          <input type="number" min={1} max={6} value={r.adults} onChange={(e) => set({ adults: Number(e.target.value) || 1 })} />
+          <NumberInput integer min={1} max={6} value={r.adults} onChange={(adults) => set({ adults })} />
         </label>
         <label className="field small">
           <span className="label">Children</span>
-          <input type="number" min={0} max={5} value={r.children} onChange={(e) => set({ children: Number(e.target.value) || 0 })} />
+          <NumberInput integer min={0} max={5} value={r.children} onChange={(children) => set({ children })} />
         </label>
         <label className="field">
           <span className="label">Cabin</span>
@@ -107,7 +108,7 @@ export function TripFields<T extends TripSearch>({ value: r, onChange: set }: Pr
         </label>
         <label className="field small">
           <span className="label">Max layover (h)</span>
-          <input type="number" min={1} max={24} step={0.5} value={r.maxLayover / 60} onChange={(e) => set({ maxLayover: Math.min(1440, Math.max(30, Math.round(Number(e.target.value) * 60) || 30)) })} />
+          <NumberInput min={0.5} max={24} step={0.5} value={r.maxLayover / 60} onChange={(h) => set({ maxLayover: Math.round(h * 60) })} />
         </label>
         <label className="field small">
           <span className="label">Currency</span>

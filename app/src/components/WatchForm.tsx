@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { WatchInput } from '../backend/types';
 import { addDays, money, todayIso } from '../lib/format';
+import { NumberInput } from './NumberInput';
 import { countCombos, TripFields, tripProblem } from './TripFields';
 
 const MAX_COMBOS = 100; // same limit as the server
@@ -63,19 +64,19 @@ export function WatchForm({ initial, isNew, busy, onSave, onCancel }: Props) {
       <div className="row">
         <label className="field small">
           <span className="label">Budget (total)</span>
-          <input type="number" min={1} step="any" value={w.budget} onChange={(e) => set({ budget: Number(e.target.value) || 0 })} />
+          <NumberInput min={1} max={1000000} value={w.budget} onChange={(budget) => set({ budget })} />
         </label>
         <label className="field small">
           <span className="label">Extra-cost reserve</span>
-          <input type="number" min={0} step="any" value={w.reserve} onChange={(e) => set({ reserve: Math.max(0, Number(e.target.value) || 0) })} />
+          <NumberInput min={0} max={1000000} value={w.reserve} onChange={(reserve) => set({ reserve })} />
         </label>
         <label className="field small">
           <span className="label">Checked bags</span>
-          <input type="number" min={0} max={4} value={w.bags} onChange={(e) => set({ bags: Math.min(4, Math.max(0, Number(e.target.value) || 0)) })} />
+          <NumberInput integer min={0} max={4} value={w.bags} onChange={(bags) => set({ bags })} />
         </label>
         <label className="field small">
           <span className="label">Dates per check</span>
-          <input type="number" min={1} max={10} value={w.pairsPerRun} onChange={(e) => set({ pairsPerRun: Math.min(10, Math.max(1, Number(e.target.value) || 1)) })} />
+          <NumberInput integer min={1} max={10} value={w.pairsPerRun} onChange={(pairsPerRun) => set({ pairsPerRun })} />
         </label>
         {w.bags > 0 && (
           <label className="inline consent">

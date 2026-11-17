@@ -14,5 +14,8 @@ export const webBackend: Backend = {
   },
   loadSettings: syncedSettings.load,
   saveSettings: syncedSettings.save,
+  openLink: async (url) => {
+    window.open(url, '_blank', 'noopener');
+  },
   server: createServerClient('Farewatch phone'),
 };

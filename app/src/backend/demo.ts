@@ -41,5 +41,8 @@ export const demoBackend: Backend = {
   },
   loadSettings: loadLocalSettings,
   saveSettings: saveLocalSettings,
+  openLink: async (url) => {
+    window.open(url, '_blank', 'noopener');
+  },
   server: demoServer,
 };

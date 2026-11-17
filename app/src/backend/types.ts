@@ -239,5 +239,7 @@ export interface Backend {
   /** From the server when signed in (cached on this device), else from this device. */
   loadSettings(): Promise<Settings>;
   saveSettings(s: Settings): Promise<void>;
+  /** Open a web page outside the app (system browser). Only Google Flights links are used. */
+  openLink(url: string): Promise<void>;
   server: ServerApi;
 }

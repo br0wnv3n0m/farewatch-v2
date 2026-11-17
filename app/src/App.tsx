@@ -6,8 +6,9 @@ import { PriceGrid } from './components/PriceGrid';
 import { SavedLookups } from './components/SavedLookups';
 import { SettingsPanel } from './components/SettingsPanel';
 import { WatchesPanel } from './components/WatchesPanel';
-import { ago, money, shortDate } from './lib/format';
+import { ago, money, shortDate, todayIso } from './lib/format';
 import { airlineNames, cellKey, visibleOptions, type CellState } from './lib/grid';
+import { loadLastLookup } from './lib/lastLookup';
 
 type Tab = 'lookup' | 'watches' | 'settings';
 type Theme = 'light' | 'dark';
@@ -216,7 +217,7 @@ export default function App({ backend, initialSettings }: { backend: Backend; in
             {!backend.canLookup && <SavedLookups key={serverTick} server={backend.server} refreshKey={savedTick} onOpen={openSaved} />}
             <LookupForm
               key={request ? JSON.stringify(request) : 'new'}
-              initial={request ?? defaultRequest(settings.blockedCountries, settings.currency)}
+              initial={request ?? loadLastLookup(defaultRequest(settings.blockedCountries, settings.currency), todayIso())}
               running={running}
               disabledReason={backend.canLookup ? undefined : 'Live lookup runs in the PC app. Open a saved lookup below.'}
               onSearch={search}
@@ -256,7 +257,7 @@ export default function App({ backend, initialSettings }: { backend: Backend; in
                   </div>
                 )}
                 {shownCell && shownCell.status !== 'pending' && (
-                  <FlightDetails options={visibleOptions(shownCell, airline)} currency={currency} message={shownCell.status === 'error' ? shownCell.message : undefined} />
+                  <FlightDetails options={visibleOptions(shownCell, airline)} currency={currency} message={shownCell.status === 'error' ? shownCell.message : undefined} trip={request ? { ...request, currency } : undefined} onOpenLink={(url) => void backend.openLink(url)} />
                 )}
               </section>
             )}
@@ -270,6 +271,7 @@ export default function App({ backend, initialSettings }: { backend: Backend; in
             draft={draft}
             onDraftUsed={onDraftUsed}
             onOpenSettings={() => setTab('settings')}
+            onOpenLink={(url) => void backend.openLink(url)}
           />
         )}
         {tab === 'settings' && (

@@ -20,6 +20,7 @@ interface Props {
   draft: WatchInput | null;
   onDraftUsed: () => void;
   onOpenSettings: () => void;
+  onOpenLink: (url: string) => void;
 }
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -30,7 +31,7 @@ function toInput(w: Watch): WatchInput {
   return input;
 }
 
-export function WatchesPanel({ server, settings, draft, onDraftUsed, onOpenSettings }: Props) {
+export function WatchesPanel({ server, settings, draft, onDraftUsed, onOpenSettings, onOpenLink }: Props) {
   const [view, setView] = useState<View>({ mode: 'list' });
   const [watches, setWatches] = useState<Watch[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -109,6 +110,7 @@ export function WatchesPanel({ server, settings, draft, onDraftUsed, onOpenSetti
   if (view.mode === 'detail')
     return (
       <WatchDetailView
+        onOpenLink={onOpenLink}
         server={server}
         id={view.id}
         notice={notice}
@@ -177,9 +179,10 @@ interface DetailProps {
   onEdit: (w: Watch) => void;
   onHistory: (w: Watch) => void;
   onDelete: (w: Watch) => void;
+  onOpenLink: (url: string) => void;
 }
 
-function WatchDetailView({ server, id, notice, onBack, onEdit, onHistory, onDelete }: DetailProps) {
+function WatchDetailView({ server, id, notice, onBack, onEdit, onHistory, onDelete, onOpenLink }: DetailProps) {
   const [data, setData] = useState<WatchDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [airline, setAirline] = useState('');
@@ -259,7 +262,7 @@ function WatchDetailView({ server, id, notice, onBack, onEdit, onHistory, onDele
           {shownCell && (
             <>
               {checkedAt && <p className="muted small">Checked {ago(checkedAt)}.</p>}
-              <FlightDetails options={visibleOptions(shownCell, airline)} currency={w.currency} />
+              <FlightDetails options={visibleOptions(shownCell, airline)} currency={w.currency} trip={w} onOpenLink={onOpenLink} />
             </>
           )}
         </>

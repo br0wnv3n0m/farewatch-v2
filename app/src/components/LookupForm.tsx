@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { LookupRequest } from '../backend/types';
 import { addDays, todayIso } from '../lib/format';
+import { saveLastLookup } from '../lib/lastLookup';
 import { countCombos, TripFields, tripProblem } from './TripFields';
 
 const MAX_COMBOS = 49; // same limit as the engine
@@ -26,6 +27,9 @@ interface Props {
 export function LookupForm({ initial, running, disabledReason, onSearch, onCancel }: Props) {
   const [r, setR] = useState<LookupRequest>(initial);
   const set = (patch: Partial<LookupRequest>) => setR((prev) => ({ ...prev, ...patch }));
+
+  // Remember the form on this device; it opens with these values next time.
+  useEffect(() => { saveLastLookup(r); }, [r]);
 
   const combos = countCombos(r);
   const minutesEta = Math.ceil((combos * (r.backDates ? 11 : 6)) / 60);

@@ -1,0 +1,11 @@
+# Cloudflare static-asset headers for the phone web app (step 5).
+# Applies only to app files; /api/* and /fare/* are answered by the Worker code.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# Vite file names change with every build, so they can be cached for a year.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

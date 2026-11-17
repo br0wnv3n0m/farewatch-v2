@@ -11,7 +11,8 @@ interface Props {
 /** Connect the app to the watch server (Cloudflare Worker) with the app password. */
 export function ServerPanel({ server, onChange }: Props) {
   const conn = server.connection();
-  const [url, setUrl] = useState(conn.url && conn.url !== 'demo' ? conn.url : '');
+  // The phone web app is served by the watch server itself, so its own address is the default.
+  const [url, setUrl] = useState(conn.url && conn.url !== 'demo' ? conn.url : import.meta.env.VITE_TARGET === 'web' ? location.origin : '');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +37,11 @@ export function ServerPanel({ server, onChange }: Props) {
               Watch checks: last request {ago(status.runner.lastPollAt)}, last result {ago(status.runner.lastReportAt)}, last successful search {ago(status.runner.lastOkAt)}.
               {status.runner.lastError ? ` Last problem: ${status.runner.lastError}` : ''}
             </p>
+            {status.alerts.dispatchError ? (
+              <p className="small warn">Starting checks from the server failed: {status.alerts.dispatchError}</p>
+            ) : status.alerts.dispatchAt ? (
+              <p className="small muted">The server last started a check on GitHub {ago(status.alerts.dispatchAt)}.</p>
+            ) : null}
             {status.alerts.outageSince && <p className="banner warn">Checks stopped {ago(status.alerts.outageSince)}: {status.alerts.outageReason}</p>}
             <p className={status.alerts.emailBlocker ? 'small warn' : 'small muted'}>
               {status.alerts.emailBlocker ?? 'Alert emails are on.'}

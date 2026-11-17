@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "build:web": "npm --prefix ../app run build:web",
+    "deploy": "npm run build:web && wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.ts",
     "db:migrate": "wrangler d1 migrations apply farewatch-v2 --remote",

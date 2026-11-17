@@ -52,6 +52,18 @@ On github.com: repo > Settings > Secrets and variables > Actions > New repositor
 - `FAREWATCH_RUNNER_TOKEN` = the runner token from step 1
 
 Then Actions > "Watch check" > Run workflow, to test once. After that it runs by itself.
+
+GitHub's own 15-minute schedule is unreliable on free public repos (often hours late). So the server cron
+(every 30 min) starts the workflow itself when a watch is due. It needs a GitHub token:
+github.com > your photo > Settings > Developer settings > Personal access tokens > Fine-grained tokens >
+Generate new token. Repository access: Only select repositories > `farewatch-v2`. Permissions > Repository >
+Actions: Read and write (nothing else). Copy the token, then:
+
+    cd /d C:\Users\jaspi\Documents\Farewatch\v2\server
+    npx wrangler secret put GITHUB_TOKEN
+
+When the token expires, make a new one and run the same command. The app (Settings) and the
+"checks have stopped" email show it when GitHub refuses the token.
 GitHub pauses scheduled workflows in a public repo after 60 days with no commits. The server emails a warning
 at 50 days (push any commit to reset the timer) and a "checks have stopped" email if it happens; then click
 "Enable workflow" in the Actions tab.
@@ -89,6 +101,15 @@ Rebuild the engine (`build-engine.cmd`) after any change in `engine/`.
 The PC app may only connect to `https://*.workers.dev` addresses. To use your own domain for the server later,
 add it to `connect-src` in `app\src-tauri\tauri.conf.json`.
 
+## 4. Phone (iPhone home screen)
+
+The server Worker also serves the phone version of the app: `npm run deploy` (in `server`) builds it
+(`app\dist-web`) and uploads it with the server. Address: `https://farewatch-v2.farewatch.workers.dev`.
+
+On the iPhone: open that address in Safari > Share > Add to Home Screen > Add. Open Farewatch from the
+home screen, enter the app password in Settings > Sign in. The phone shows watches, price history and
+lookups saved by the PC app; live lookup runs only in the PC app.
+
 ## Other commands
 
     app:     npm run dev          UI in a normal browser, fake prices and fake server (demo mode)
@@ -96,7 +117,8 @@ add it to `connect-src` in `app\src-tauri\tauri.conf.json`.
     app:     npm run tauri build  Windows installer in app\src-tauri\target\release\bundle\nsis
     server:  npm test             server tests (in-memory database)
     server:  npm run typecheck
-    server:  npm run deploy       after any change in server\src
+    server:  npm run deploy       after any change in server\src or app\src (also builds the phone app)
+    app:     npm run build:web    phone app only, into app\dist-web
     engine:  .venv\Scripts\python -m unittest discover -s tests -t .
 
 Database changes go in a new file `server\migrations\0002_....sql`, then `npm run db:migrate`.

@@ -46,7 +46,7 @@ export const demoServer: ServerApi = {
   async status() {
     return {
       runner: { lastPollAt: Date.now() - 5 * 60_000, lastReportAt: Date.now() - 20 * 60_000, lastOkAt: Date.now() - 20 * 60_000, lastError: null },
-      alerts: { emailBlocker: null, outageSince: null, outageReason: null, repoCommitAt: Date.now() - 3 * 86_400_000, recentEmails: [{ at: Date.now() - 3_600_000, kind: 'fares' as const, ok: true, message: 'Demo: 2 fares sent.' }] },
+      alerts: { emailBlocker: null, outageSince: null, outageReason: null, repoCommitAt: Date.now() - 3 * 86_400_000, dispatchAt: null, dispatchError: null, recentEmails: [{ at: Date.now() - 3_600_000, kind: 'fares' as const, ok: true, message: 'Demo: 2 fares sent.' }] },
     };
   },
   async sendTestEmail() {

@@ -80,6 +80,18 @@ class RunServer(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual([p for p, _ in server.calls], ['job', 'report'])
 
+    def test_one_failed_date_does_not_fail_the_run(self):
+        report = {'runId': 'r', 'cells': [{'status': 'ok'}, {'status': 'error'}], 'errorCount': 1, 'fatal': None}
+        server = FakeServer([JOB])
+        with mock.patch.dict(os.environ, ENV), mock.patch.object(runner, 'api', server), \
+                mock.patch.object(runner, 'process_job', lambda job, client: report):
+            self.assertEqual(quiet(runner.run_server, lambda: GOOD), 0)
+        all_failed = {**report, 'cells': [{'status': 'error'}], 'errorCount': 1}
+        server = FakeServer([JOB])
+        with mock.patch.dict(os.environ, ENV), mock.patch.object(runner, 'api', server), \
+                mock.patch.object(runner, 'process_job', lambda job, client: all_failed):
+            self.assertEqual(quiet(runner.run_server, lambda: GOOD), 1)
+
     def test_bad_settings_are_refused(self):
         with mock.patch.dict(os.environ, {'FAREWATCH_URL': 'http://plain.example', 'FAREWATCH_RUNNER_TOKEN': 't' * 40}):
             self.assertEqual(quiet(runner.main, []), 1)

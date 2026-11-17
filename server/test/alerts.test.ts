@@ -236,3 +236,62 @@ describe('checks-stopped monitor', () => {
     assert.match(stopped.body.text, /no commit for 61 days.*paused/);
   });
 });
+
+describe('cron starts the GitHub workflow (step 5)', () => {
+  let calls: { url: string; auth: string; body: unknown }[];
+  let ghStatus: number;
+  beforeEach(() => {
+    calls = [];
+    ghStatus = 204;
+    globalThis.fetch = (async (url: string, init: RequestInit) => {
+      if (url.startsWith('https://api.github.com/')) {
+        calls.push({ url, auth: (init.headers as Record<string, string>).Authorization, body: JSON.parse(String(init.body)) });
+        return new Response(null, { status: ghStatus });
+      }
+      return new Response(JSON.stringify({ id: 'e1' }), { status: 200 }); // Resend
+    }) as typeof fetch;
+  });
+  const status = async (token: string) => (await call('GET', '/api/status', undefined, { token })).body.alerts;
+
+  test('due watch and quiet runner: one start request, then a gap', async () => {
+    const { dispatchIfDue } = await import('../src/dispatch.ts');
+    const { token } = await setup();
+    (env as Record<string, unknown>).GITHUB_TOKEN = 'github_pat_test';
+    assert.equal(await dispatchIfDue(env as never, NOW), 'sent');
+    assert.equal(calls.length, 1);
+    assert.match(calls[0].url, /repos\/br0wnv3n0m\/farewatch-v2\/actions\/workflows\/watch\.yml\/dispatches$/);
+    assert.equal(calls[0].auth, 'Bearer github_pat_test');
+    assert.deepEqual(calls[0].body, { ref: 'main' });
+    assert.equal(await dispatchIfDue(env as never, NOW + 10 * MIN), 'recent');
+    assert.equal((await status(token)).dispatchAt, NOW);
+  });
+
+  test('skips without token, when nothing is due, or when the runner just polled', async () => {
+    const { dispatchIfDue } = await import('../src/dispatch.ts');
+    const { token, id } = await setup();
+    assert.equal(await dispatchIfDue(env as never, NOW), 'no-token');
+    (env as Record<string, unknown>).GITHUB_TOKEN = 'github_pat_test';
+    await call('POST', '/api/runner/due', {}, { runner: true, now: NOW - 5 * MIN });
+    assert.equal(await dispatchIfDue(env as never, NOW), 'recent');
+    await check(null, NOW); // checked now: not due for 50 min
+    assert.equal(await dispatchIfDue(env as never, NOW + 30 * MIN), 'not-due');
+    await call('PATCH', `/api/watches/${id}`, { enabled: false }, { token });
+    assert.equal(await dispatchIfDue(env as never, NOW + 3 * HOUR), 'not-due');
+    assert.equal(calls.length, 0);
+  });
+
+  test('a refused token is shown in status and in the stopped email', async () => {
+    const { token } = await setup();
+    (env as Record<string, unknown>).GITHUB_TOKEN = 'github_pat_old';
+    ghStatus = 401;
+    await scheduled(env as never, NOW);
+    const s = await status(token);
+    assert.match(s.dispatchError, /HTTP 401.*wrong or expired/);
+    await call('POST', '/api/runner/due', {}, { runner: true, now: NOW - 7 * HOUR });
+    await runMonitor(env as never, NOW + 4 * HOUR);
+    assert.match((await status(token)).outageReason, /HTTP 401/);
+    ghStatus = 204;
+    await scheduled(env as never, NOW + 5 * HOUR);
+    assert.equal((await status(token)).dispatchError, null);
+  });
+});

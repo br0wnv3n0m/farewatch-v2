@@ -184,6 +184,8 @@ export interface AlertStatus {
   outageSince: number | null; // checks stopped since (null = fine)
   outageReason: string | null;
   repoCommitAt: number | null; // newest repo commit the runner saw (GitHub's 60-day pause)
+  dispatchAt: number | null; // last time the server asked GitHub to start the workflow
+  dispatchError: string | null; // why that failed, if it did
   recentEmails: EmailLogEntry[];
 }
 

@@ -24,7 +24,10 @@ function initialTheme(): Theme {
 const budgetFrom = (price: number) => Math.ceil(price / 50) * 50;
 
 export default function App({ backend, initialSettings }: { backend: Backend; initialSettings: Settings }) {
-  const [tab, setTab] = useState<Tab>('lookup');
+  // Phone (web): open on Watches, or on Settings until signed in. Live lookup only runs on the PC.
+  const [tab, setTab] = useState<Tab>(() =>
+    backend.kind === 'web' ? (backend.server.connection().signedIn ? 'watches' : 'settings') : 'lookup',
+  );
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const [settings, setSettings] = useState(initialSettings);
   const [settingsError, setSettingsError] = useState<string | null>(null);
@@ -45,6 +48,19 @@ export default function App({ backend, initialSettings }: { backend: Backend; in
   const pendingSave = useRef(false); // a live lookup is running and should be saved when it ends
   const completed = useRef(false);
   const saveTimer = useRef<number | undefined>(undefined);
+
+  // Phone home-screen apps stay open in the background for days: reload server data
+  // when the app comes back after 5+ minutes (same as signing in again).
+  useEffect(() => {
+    if (backend.kind !== 'web') return;
+    let hiddenAt = 0;
+    const onVisible = () => {
+      if (document.hidden) hiddenAt = Date.now();
+      else if (hiddenAt && Date.now() - hiddenAt > 5 * 60_000) setServerTick((t) => t + 1);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [backend.kind]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;

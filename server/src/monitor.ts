@@ -7,6 +7,7 @@
 //     a warning email at 50 days, and the "stopped" email names this case when it happens.
 // One email when a problem starts, a reminder every 3 days while it lasts, one when checks work again.
 import { sendFareAlerts } from './alerts.ts';
+import { dispatchIfDue } from './dispatch.ts';
 import { emailBlocker, emailLayout, esc, logEmail, sendEmail, type EmailKind } from './email.ts';
 import type { Env } from './http.ts';
 import { combos, todayUtc } from './rules.ts';
@@ -32,6 +33,8 @@ export interface MonitorRow {
   outage_since: number;
   outage_reason: string | null;
   outage_emailed_at: number;
+  dispatch_at: number;
+  dispatch_error: string | null;
 }
 
 export async function loadMonitor(db: D1Database): Promise<MonitorRow> {
@@ -47,11 +50,12 @@ export function findProblem(s: MonitorRow, activeSince: number | null, now: numb
   if (s.last_poll_at && now - s.last_poll_at > POLL_LIMIT) {
     const paused = repoDays >= REPO_PAUSE_DAYS - 1;
     return `The GitHub workflow has not asked for work for ${hoursText(now - s.last_poll_at)}.` +
-      (paused ? ` The repo has had no commit for ${Math.floor(repoDays)} days, so GitHub has most likely paused the schedule.` : '');
+      (paused ? ` The repo has had no commit for ${Math.floor(repoDays)} days, so GitHub has most likely paused the schedule.` : '') +
+      (s.dispatch_error ? ` ${s.dispatch_error}` : '');
   }
   const okRef = Math.max(s.last_ok_at, activeSince);
   if (now - okRef > OK_LIMIT)
-    return `No successful flight search for ${hoursText(now - okRef)}.` + (s.last_error ? ` Last problem: ${s.last_error}` : '');
+    return `No successful flight search for ${hoursText(now - okRef)}.` + (s.last_error ? ` Last problem: ${s.last_error}` : '') + (s.dispatch_error ? ` ${s.dispatch_error}` : '');
   return null;
 }
 
@@ -127,9 +131,10 @@ export async function cleanUp(db: D1Database, now: number): Promise<void> {
   ]);
 }
 
-/** Cron entry: clean-up, retry any fare alert that failed, then the monitor. Each part runs even if another fails. */
+/** Cron entry: start the GitHub workflow if a watch is due, clean-up, retry any fare alert that failed, then the monitor. Each part runs even if another fails. */
 export async function scheduled(env: Env, now: number): Promise<void> {
   const parts: [string, () => Promise<unknown>][] = [
+    ['start workflow', () => dispatchIfDue(env, now)],
     ['clean-up', () => cleanUp(env.DB, now)],
     ['fare alerts', async () => {
       for (const { row } of await loadWatches(env.DB)) if (row.enabled === 1) await sendFareAlerts(env, row.id, now);
@@ -156,6 +161,8 @@ export async function alertStatus(env: Env): Promise<Record<string, unknown>> {
     outageSince: s.outage_since || null,
     outageReason: s.outage_reason,
     repoCommitAt: s.repo_commit_at || null,
+    dispatchAt: s.dispatch_at || null,
+    dispatchError: s.dispatch_error,
     recentEmails: last.results.map((r) => ({ at: r.at, kind: r.kind, ok: r.ok === 1, message: r.message })),
   };
 }

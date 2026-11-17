@@ -136,7 +136,9 @@ def run_server(client_factory):
         client = client or client_factory()
         report = process_job(job, client)
         print(api(base, token, 'report', report).get('message', 'Reported.'))
-        failed = failed or report['errorCount'] > 0
+        # Red run only when the run had to stop or every search of a job failed.
+        # A single failed date (Google hiccup) is recorded by the server and retried next time.
+        failed = failed or bool(report['fatal']) or (report['errorCount'] > 0 and report['errorCount'] == len(report['cells']))
         excluded.append(job['watchId'])
         if report['fatal']:
             print('Stopping this run early: ' + report['fatal'], file=sys.stderr)

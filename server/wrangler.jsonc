@@ -4,6 +4,13 @@
   "name": "farewatch-v2",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
+  // Step 5: the phone web app (app/dist-web, built by "npm run deploy") is served from this Worker.
+  // /api/* and /fare/* always run the Worker code; every other path is the app (free static assets).
+  "assets": {
+    "directory": "../app/dist-web",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/fare/*"]
+  },
   "d1_databases": [
     {
       "binding": "DB",
@@ -13,8 +20,8 @@
     }
   ],
   "vars": {
-    // App origins allowed to call the API (Tauri app, Vite dev). Add the phone web app in step 5.
-    "ALLOWED_ORIGINS": "http://tauri.localhost,https://tauri.localhost,tauri://localhost,http://localhost:1420",
+    // App origins allowed to call the API: Tauri app, Vite dev, and the phone web app (served by this Worker, step 5).
+    "ALLOWED_ORIGINS": "http://tauri.localhost,https://tauri.localhost,tauri://localhost,http://localhost:1420,https://farewatch-v2.farewatch.workers.dev",
     // Alert email sender: the domain already verified in Resend for v1.
     "EMAIL_FROM": "Farewatch <farewatch@nexbuildcreations.ca>",
     // Used in fare links inside emails.
@@ -23,5 +30,5 @@
   // Every 30 min: clean-up, fare alert retries, "checks have stopped" monitor (free plan allows this).
   "triggers": { "crons": ["*/30 * * * *"] },
   "observability": { "enabled": true }
-  // Secrets (never in this file): npx wrangler secret put ADMIN_PASSWORD / RUNNER_TOKEN / RESEND_API_KEY
+  // Secrets (never in this file): npx wrangler secret put ADMIN_PASSWORD / RUNNER_TOKEN / RESEND_API_KEY / GITHUB_TOKEN
 }

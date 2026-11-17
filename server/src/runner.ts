@@ -31,9 +31,14 @@ export async function runnerDue(ctx: Ctx): Promise<Response> {
   const commitAt = body.commitAt;
   const commitMs = Number.isSafeInteger(commitAt) && (commitAt as number) > 1.5e9 && (commitAt as number) * 1000 < now + DAY ? (commitAt as number) * 1000 : 0;
   await env.DB.prepare('UPDATE runner_status SET last_poll_at = ?, repo_commit_at = MAX(repo_commit_at, ?) WHERE id = 1').bind(now, commitMs).run();
-  const row = await env.DB.prepare('SELECT id FROM watches WHERE enabled = 1 AND lease_until < ? AND last_checked_at < ? LIMIT 1')
+  return json({ due: await isWatchDue(env.DB, now) });
+}
+
+/** True when an enabled watch is free and has not been checked for RECHECK_AFTER. Also used by the cron (dispatch.ts). */
+export async function isWatchDue(db: D1Database, now: number): Promise<boolean> {
+  const row = await db.prepare('SELECT id FROM watches WHERE enabled = 1 AND lease_until < ? AND last_checked_at < ? LIMIT 1')
     .bind(now, now - RECHECK_AFTER).first();
-  return json({ due: !!row });
+  return !!row;
 }
 
 /** POST /api/runner/job {exclude?: number[]} */

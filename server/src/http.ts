@@ -15,6 +15,8 @@ export interface Env {
   EMAIL_FROM?: string;
   /** This Worker's public address, used in fare links (the cron has no request URL). */
   PUBLIC_URL?: string;
+  /** Secret. Fine-grained GitHub token (farewatch-v2 only, Actions: read and write). Lets the cron start the workflow. */
+  GITHUB_TOKEN?: string;
 }
 
 /** Everything a route needs. `now` is passed in so tests can fix the clock. */

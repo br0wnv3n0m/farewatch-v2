@@ -8,8 +8,7 @@
     {
       "binding": "DB",
       "database_name": "farewatch-v2",
-      // Paste the id printed by: npx wrangler d1 create farewatch-v2
-      "database_id": "PASTE-DATABASE-ID-HERE",
+      "database_id": "0a3f411c-a272-4bfd-938c-5eac02866384",
       "migrations_dir": "migrations"
     }
   ],

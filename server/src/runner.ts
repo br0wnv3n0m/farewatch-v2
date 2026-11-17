@@ -7,6 +7,8 @@ import { type Ctx, HttpError, json, readJson } from './http.ts';
 import {
   asObject, type CellOption, type Combo, combos, InputError, LIMITS, optionAllowed, sanitizeOption, type SearchRules, todayUtc,
 } from './rules.ts';
+import { sendFareAlerts } from './alerts.ts';
+import { alertStatus } from './monitor.ts';
 import { loadWatches, type WatchRow } from './watches.ts';
 
 const MINUTE = 60_000;
@@ -22,10 +24,13 @@ const searchConfig = (w: SearchRules): SearchRules => ({
   blockedCountries: w.blockedCountries, airlines: w.airlines,
 });
 
-/** POST /api/runner/due */
+/** POST /api/runner/due {commitAt?} - commitAt: Unix seconds of the repo's newest commit (GitHub's 60-day pause). */
 export async function runnerDue(ctx: Ctx): Promise<Response> {
   const { env, now } = ctx;
-  await env.DB.prepare('UPDATE runner_status SET last_poll_at = ? WHERE id = 1').bind(now).run();
+  const body = asObject(await readJson(ctx.request, 1024));
+  const commitAt = body.commitAt;
+  const commitMs = Number.isSafeInteger(commitAt) && (commitAt as number) > 1.5e9 && (commitAt as number) * 1000 < now + DAY ? (commitAt as number) * 1000 : 0;
+  await env.DB.prepare('UPDATE runner_status SET last_poll_at = ?, repo_commit_at = MAX(repo_commit_at, ?) WHERE id = 1').bind(now, commitMs).run();
   const row = await env.DB.prepare('SELECT id FROM watches WHERE enabled = 1 AND lease_until < ? AND last_checked_at < ? LIMIT 1')
     .bind(now, now - RECHECK_AFTER).first();
   return json({ due: !!row });
@@ -187,12 +192,8 @@ export async function runnerReport(ctx: Ctx): Promise<Response> {
     db.prepare("UPDATE runner_jobs SET state = 'done', message = ? WHERE id = ?").bind(message, job.id),
     db.prepare('UPDATE runner_status SET last_report_at = ?, last_ok_at = CASE WHEN ? THEN ? ELSE last_ok_at END, last_error = ? WHERE id = 1')
       .bind(now, priced + none > 0 ? 1 : 0, now, firstError),
-    // housekeeping
+    // Keep the newest 100 runs. Other clean-up runs in the cron (monitor.ts).
     db.prepare('DELETE FROM watch_runs WHERE watch_id = ? AND id NOT IN (SELECT id FROM watch_runs WHERE watch_id = ? ORDER BY id DESC LIMIT 100)').bind(row.id, row.id),
-    db.prepare('DELETE FROM watch_prices WHERE out_date < ?').bind(today),
-    db.prepare('DELETE FROM price_history WHERE at < ?').bind(now - 365 * DAY),
-    db.prepare('DELETE FROM runner_job_pairs WHERE job_id IN (SELECT id FROM runner_jobs WHERE leased_at < ?)').bind(now - 7 * DAY),
-    db.prepare('DELETE FROM runner_jobs WHERE leased_at < ?').bind(now - 7 * DAY),
   );
   try {
     await db.batch(statements);
@@ -200,7 +201,15 @@ export async function runnerReport(ctx: Ctx): Promise<Response> {
     await db.prepare("UPDATE runner_jobs SET state = 'leased' WHERE id = ?").bind(job.id).run();
     throw err;
   }
-  return json({ message });
+  // Fare alert email. A failure never fails the report; the cron retries within 30 minutes.
+  let emailed = '';
+  try {
+    const r = await sendFareAlerts(env, row.id, now);
+    if (r) emailed = r.ok ? ' Alert email sent.' : ' Alert email failed; it will be retried.';
+  } catch (err) {
+    console.error('fare alert failed', err);
+  }
+  return json({ message: message + emailed });
 }
 
 /** GET /api/status (app): when the runner last polled / reported. */
@@ -208,6 +217,7 @@ export async function runnerStatus(ctx: Ctx): Promise<Response> {
   const s = await ctx.env.DB.prepare('SELECT last_poll_at, last_report_at, last_ok_at, last_error FROM runner_status WHERE id = 1')
     .first<{ last_poll_at: number; last_report_at: number; last_ok_at: number; last_error: string | null }>();
   return json({
+    alerts: await alertStatus(ctx.env),
     runner: {
       lastPollAt: s?.last_poll_at || null,
       lastReportAt: s?.last_report_at || null,

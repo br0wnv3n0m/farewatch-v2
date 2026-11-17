@@ -171,6 +171,37 @@ export interface RunnerStatus {
   lastError: string | null;
 }
 
+export interface EmailLogEntry {
+  at: number;
+  kind: 'fares' | 'stopped' | 'resumed' | 'repo' | 'test';
+  ok: boolean;
+  message: string;
+}
+
+/** Alert emails and the "checks have stopped" monitor (step 4). */
+export interface AlertStatus {
+  emailBlocker: string | null; // why email cannot be sent, or null when it can
+  outageSince: number | null; // checks stopped since (null = fine)
+  outageReason: string | null;
+  repoCommitAt: number | null; // newest repo commit the runner saw (GitHub's 60-day pause)
+  recentEmails: EmailLogEntry[];
+}
+
+export interface ServerStatus {
+  runner: RunnerStatus;
+  alerts: AlertStatus;
+}
+
+/** GET /api/watches/:id/history (current search settings only). */
+export interface WatchHistory {
+  currency: string;
+  budget: number;
+  reserve: number;
+  days: { day: IsoDate; low: number }[];
+  combos: { out: IsoDate; back: IsoDate | null; low: number; high: number; checks: number; lastAt: number; latest: number | null }[];
+  points: { at: number; price: number; airlines: string[] }[] | null;
+}
+
 export interface ServerConnection {
   url: string | null; // null = not set up
   signedIn: boolean;
@@ -181,7 +212,9 @@ export interface ServerApi {
   connection(): ServerConnection;
   signIn(url: string, password: string): Promise<void>;
   signOut(): Promise<void>;
-  runnerStatus(): Promise<RunnerStatus>;
+  status(): Promise<ServerStatus>;
+  sendTestEmail(): Promise<string>;
+  getHistory(id: number, combo?: Combo): Promise<WatchHistory>;
   listWatches(): Promise<Watch[]>;
   getWatch(id: number): Promise<WatchDetail>;
   createWatch(w: WatchInput): Promise<number>;

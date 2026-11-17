@@ -1,7 +1,7 @@
 // Watch server client (v2/server). Used by the desktop and web backends.
 // Plain fetch with a bearer token; the server allows the app's origins (CORS).
 import { DEFAULT_SETTINGS, loadLocalSettings, saveLocalSettings } from './localSettings';
-import type { RunnerStatus, SavedLookupSummary, ServerApi, Settings, Watch } from './types';
+import type { SavedLookupSummary, ServerApi, ServerStatus, Settings, Watch, WatchHistory } from './types';
 
 const KEY = 'farewatch.server.v1';
 
@@ -92,7 +92,12 @@ export function createServerClient(label: string): ServerApi {
         write(s ? { url: s.url, token: null } : null);
       }
     },
-    runnerStatus: async () => (await call<{ runner: RunnerStatus }>('GET', '/api/status')).runner,
+    status: () => call<ServerStatus>('GET', '/api/status'),
+    sendTestEmail: async () => (await call<{ message: string }>('POST', '/api/alerts/test', {})).message,
+    getHistory: (id, combo) => {
+      const q = combo ? `?out=${combo.out}${combo.back ? `&back=${combo.back}` : ''}` : '';
+      return call<WatchHistory>('GET', `/api/watches/${id}/history${q}`);
+    },
     listWatches: async () => (await call<{ watches: Watch[] }>('GET', '/api/watches')).watches,
     getWatch: (id) => call('GET', `/api/watches/${id}`),
     createWatch: async (w) => (await call<{ id: number }>('POST', '/api/watches', w)).id,

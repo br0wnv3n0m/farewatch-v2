@@ -219,7 +219,7 @@ export async function updateWatch(ctx: Ctx, idText: string): Promise<Response> {
     db.prepare('DELETE FROM watch_airlines WHERE watch_id = ?').bind(id),
     ...childInserts(db, '?', [id], w),
   ];
-  if (reset) statements.push(db.prepare('DELETE FROM watch_prices WHERE watch_id = ?').bind(id));
+  if (reset) statements.push(db.prepare('DELETE FROM watch_prices WHERE watch_id = ?').bind(id), db.prepare('DELETE FROM fare_alerts WHERE watch_id = ?').bind(id));
   await db.batch(statements);
   return json({ id, pricesCleared: reset });
 }
@@ -240,7 +240,7 @@ export async function deleteWatch(ctx: Ctx, idText: string): Promise<Response> {
   const id = idParam(idText);
   const results = await db.batch([
     db.prepare('DELETE FROM runner_job_pairs WHERE job_id IN (SELECT id FROM runner_jobs WHERE watch_id = ?)').bind(id),
-    ...['runner_jobs', 'watch_runs', 'price_history', 'watch_prices', 'watch_airlines', 'watch_blocked_countries'].map((t) =>
+    ...['runner_jobs', 'watch_runs', 'price_history', 'watch_prices', 'fare_alerts', 'fare_links', 'watch_airlines', 'watch_blocked_countries'].map((t) =>
       db.prepare(`DELETE FROM ${t} WHERE watch_id = ?`).bind(id)),
     db.prepare('DELETE FROM watches WHERE id = ?').bind(id),
   ]);

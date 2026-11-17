@@ -1,14 +1,16 @@
 // Router for the watch server. App routes need a session token (POST /api/login);
 // runner routes need RUNNER_TOKEN. Kept out of index.ts: a Worker's main module
 // may only export handlers.
+import { farePage, sendTestEmail } from './alerts.ts';
 import { login, logout, requireRunner, requireSession } from './auth.ts';
+import { getHistory } from './history.ts';
 import { type Ctx, type Env, errorResponse, HttpError, json } from './http.ts';
 import { deleteLookup, getLookup, listLookups, saveLookup } from './lookups.ts';
 import { runnerDue, runnerJob, runnerReport, runnerStatus } from './runner.ts';
 import { getSettings, putSettings } from './settings.ts';
 import { createWatch, deleteWatch, getWatch, listWatches, patchWatch, updateWatch } from './watches.ts';
 
-export const SERVER_VERSION = '2.0.0';
+export const SERVER_VERSION = '2.1.0';
 
 // Tauri on Windows serves the app from http://tauri.localhost; Vite dev uses localhost:1420.
 const DEFAULT_ORIGINS = 'http://tauri.localhost,https://tauri.localhost,tauri://localhost,http://localhost:1420';
@@ -18,6 +20,7 @@ interface Route { method: string; path: RegExp; auth: 'none' | 'session' | 'runn
 
 const ID = '(\\d+)';
 const UUID = '([0-9a-f-]{36})';
+const TOKEN = '([0-9a-f]{32})';
 const routes: Route[] = [
   { method: 'GET', path: /^\/api\/health$/, auth: 'none', handler: async () => json({ ok: true, version: SERVER_VERSION }) },
   { method: 'POST', path: /^\/api\/login$/, auth: 'none', handler: login },
@@ -31,10 +34,15 @@ const routes: Route[] = [
   { method: 'PUT', path: new RegExp(`^/api/watches/${ID}$`), auth: 'session', handler: updateWatch },
   { method: 'PATCH', path: new RegExp(`^/api/watches/${ID}$`), auth: 'session', handler: patchWatch },
   { method: 'DELETE', path: new RegExp(`^/api/watches/${ID}$`), auth: 'session', handler: deleteWatch },
+  { method: 'GET', path: new RegExp(`^/api/watches/${ID}/history$`), auth: 'session', handler: getHistory },
+  { method: 'POST', path: /^\/api\/alerts\/test$/, auth: 'session', handler: sendTestEmail },
   { method: 'GET', path: /^\/api\/lookups$/, auth: 'session', handler: listLookups },
   { method: 'POST', path: /^\/api\/lookups$/, auth: 'session', handler: saveLookup },
   { method: 'GET', path: new RegExp(`^/api/lookups/${UUID}$`), auth: 'session', handler: getLookup },
   { method: 'DELETE', path: new RegExp(`^/api/lookups/${UUID}$`), auth: 'session', handler: deleteLookup },
+  // Fare pages linked from alert emails (public, token in the link).
+  { method: 'GET', path: new RegExp(`^/fare/${TOKEN}$`), auth: 'none', handler: farePage },
+  { method: 'HEAD', path: new RegExp(`^/fare/${TOKEN}$`), auth: 'none', handler: farePage },
   { method: 'POST', path: /^\/api\/runner\/due$/, auth: 'runner', handler: runnerDue },
   { method: 'POST', path: /^\/api\/runner\/job$/, auth: 'runner', handler: runnerJob },
   { method: 'POST', path: /^\/api\/runner\/report$/, auth: 'runner', handler: runnerReport },

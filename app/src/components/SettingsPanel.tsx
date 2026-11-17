@@ -34,7 +34,7 @@ export function SettingsPanel({ settings, onChange, engine, backendKind, server,
       </label>
       {server.connection().signedIn && (
         <label className="field">
-          <span className="label">Alert email (alerts start in a later update)</span>
+          <span className="label">Alert email (fares under budget, and a warning if checks stop)</span>
           <input
             type="email"
             value={email}

@@ -99,9 +99,24 @@ def process_job(job, client):
     return {'runId': job.get('runId'), 'cells': cells, 'errorCount': errors, 'fatal': fatal}
 
 
+def commit_time():
+    """Unix seconds of the checked-out commit (FAREWATCH_COMMIT_AT, set by the workflow), or None.
+
+    The server uses it to warn before GitHub pauses the schedule (60 days without commits)."""
+    try:
+        value = int(os.environ.get('FAREWATCH_COMMIT_AT', ''))
+    except ValueError:
+        return None
+    return value if value > 0 else None
+
+
 def run_due():
     base, token = server_settings()
-    due = bool(api(base, token, 'due', {}).get('due'))
+    payload = {}
+    commit_at = commit_time()
+    if commit_at:
+        payload['commitAt'] = commit_at
+    due = bool(api(base, token, 'due', payload).get('due'))
     out = os.environ.get('GITHUB_OUTPUT')
     if out:
         with open(out, 'a', encoding='utf-8') as fh:

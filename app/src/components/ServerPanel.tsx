@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { RunnerStatus, ServerApi } from '../backend/types';
+import type { ServerApi, ServerStatus } from '../backend/types';
 import { ago } from '../lib/format';
 
 interface Props {
@@ -15,10 +15,11 @@ export function ServerPanel({ server, onChange }: Props) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [runner, setRunner] = useState<RunnerStatus | null>(null);
+  const [status, setStatus] = useState<ServerStatus | null>(null);
+  const [testMsg, setTestMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (conn.signedIn) server.runnerStatus().then(setRunner, () => setRunner(null));
+    if (conn.signedIn) server.status().then(setStatus, () => setStatus(null));
   }, [server, conn.signedIn]);
 
   if (conn.url === 'demo') return <p className="muted small">Demo mode: watches are kept in memory and prices are fake.</p>;
@@ -29,12 +30,45 @@ export function ServerPanel({ server, onChange }: Props) {
         <p className="small">
           Connected to <strong>{conn.url}</strong>
         </p>
-        {runner && (
-          <p className={runner.lastError ? 'small warn' : 'small muted'}>
-            Watch checks: last request {ago(runner.lastPollAt)}, last result {ago(runner.lastReportAt)}, last successful search {ago(runner.lastOkAt)}.
-            {runner.lastError ? ` Last problem: ${runner.lastError}` : ''}
-          </p>
+        {status && (
+          <>
+            <p className={status.runner.lastError ? 'small warn' : 'small muted'}>
+              Watch checks: last request {ago(status.runner.lastPollAt)}, last result {ago(status.runner.lastReportAt)}, last successful search {ago(status.runner.lastOkAt)}.
+              {status.runner.lastError ? ` Last problem: ${status.runner.lastError}` : ''}
+            </p>
+            {status.alerts.outageSince && <p className="banner warn">Checks stopped {ago(status.alerts.outageSince)}: {status.alerts.outageReason}</p>}
+            <p className={status.alerts.emailBlocker ? 'small warn' : 'small muted'}>
+              {status.alerts.emailBlocker ?? 'Alert emails are on.'}
+              {status.alerts.repoCommitAt ? ` Last commit to the GitHub repo ${ago(status.alerts.repoCommitAt)} (GitHub pauses checks after 60 days without one).` : ''}
+            </p>
+            {status.alerts.recentEmails.length > 0 && (
+              <ul className="emails">
+                {status.alerts.recentEmails.map((m, i) => (
+                  <li key={i} className={m.ok ? undefined : 'warn'}><span className="muted">{ago(m.at)}</span> {m.message}</li>
+                ))}
+              </ul>
+            )}
+          </>
         )}
+        <span className="buttons">
+          <button
+            className="btn ghost"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setTestMsg(null);
+              try {
+                setTestMsg(await server.sendTestEmail());
+              } catch (err) {
+                setTestMsg(err instanceof Error ? err.message : String(err));
+              } finally {
+                setBusy(false);
+                server.status().then(setStatus, () => undefined);
+              }
+            }}
+          >
+            Send test email
+          </button>
         <button
           className="btn ghost"
           disabled={busy}
@@ -47,6 +81,8 @@ export function ServerPanel({ server, onChange }: Props) {
         >
           Sign out
         </button>
+        </span>
+        {testMsg && <p className="small">{testMsg}</p>}
       </div>
     );
 

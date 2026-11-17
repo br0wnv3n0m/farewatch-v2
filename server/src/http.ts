@@ -9,6 +9,12 @@ export interface Env {
   RUNNER_TOKEN?: string;
   /** Comma list of app origins allowed to call the API from a browser/webview. */
   ALLOWED_ORIGINS?: string;
+  /** Secret. Resend API key (sending access) for alert emails. */
+  RESEND_API_KEY?: string;
+  /** Sender, e.g. "Farewatch <farewatch@example.com>"; its domain must be verified in Resend. */
+  EMAIL_FROM?: string;
+  /** This Worker's public address, used in fare links (the cron has no request URL). */
+  PUBLIC_URL?: string;
 }
 
 /** Everything a route needs. `now` is passed in so tests can fix the clock. */

@@ -182,3 +182,32 @@ details.card summary { cursor: pointer; font-weight: 600; }
 .server { display: flex; flex-direction: column; gap: 0.5rem; }
 .server .row { align-items: flex-end; }
 .settings h3 { margin-top: 0.6rem; }
+
+/* step 4: price history, email status */
+.history { display: flex; flex-direction: column; gap: 0.75rem; }
+.history-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; align-items: baseline; }
+.history-all { margin-left: 0.6rem; }
+.history-stats { display: flex; flex-wrap: wrap; gap: 0.9rem; }
+.price-sm { font-family: var(--price-font); font-weight: 700; }
+.chart { margin-top: 0.5rem; }
+.chart-readout { min-height: 1.3rem; }
+.chart svg { display: block; max-width: 100%; touch-action: pan-y; }
+.chart .grid { stroke: var(--border); stroke-width: 1; }
+.chart .axis { fill: var(--muted); font-size: 11px; font-family: var(--body-font); }
+.chart .threshold { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.chart .series { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot { fill: var(--accent); stroke: var(--bg); stroke-width: 2; }
+.chart .crosshair { stroke: var(--muted); stroke-width: 1; }
+.table-scroll { overflow-x: auto; margin-top: 0.4rem; }
+.history-table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: 0.88rem; }
+.history-table th { text-align: left; font-weight: 600; color: var(--muted); font-size: 0.78rem; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--border); }
+.history-table td { padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.history-table td.num { font-family: var(--price-font); }
+.history-table td .badge { margin-left: 0.4rem; }
+.history-table tbody tr { cursor: pointer; }
+.history-table tbody tr:hover, .history-table tbody tr.active { background: var(--bg); box-shadow: inset 3px 0 0 var(--accent); }
+.emails { margin: 0.2rem 0 0; padding-left: 1.1rem; font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.2rem; }
+@media (max-width: 640px) {
+  .history-table { min-width: 0; }
+  .history-table .opt { display: none; } /* phone: dates, now, lowest */
+}

@@ -90,11 +90,15 @@ class RunServer(unittest.TestCase):
         import tempfile
         with tempfile.NamedTemporaryFile('r', suffix='.txt', delete=False) as fh:
             path = fh.name
-        with mock.patch.dict(os.environ, {**ENV, 'GITHUB_OUTPUT': path}), mock.patch.object(runner, 'api', FakeServer([])):
+        server = FakeServer([])
+        env = {**ENV, 'GITHUB_OUTPUT': path, 'FAREWATCH_COMMIT_AT': '1794880000'}
+        with mock.patch.dict(os.environ, env), mock.patch.object(runner, 'api', server):
             self.assertEqual(quiet(runner.main, ['--due']), 0)
         with open(path, encoding='utf-8') as fh:
             self.assertEqual(fh.read(), 'due=true\n')
         os.unlink(path)
+        # The commit time goes to the server (GitHub's 60-day pause warning).
+        self.assertEqual(server.calls, [('due', {'commitAt': 1794880000})])
 
 
 if __name__ == '__main__':

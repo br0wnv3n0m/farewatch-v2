@@ -3,10 +3,15 @@ import type { ServerApi, Settings, Watch, WatchDetail, WatchInput } from '../bac
 import { ago, money, rangeText } from '../lib/format';
 import { airlineNames, cellKey, visibleOptions, type CellState } from '../lib/grid';
 import { FlightDetails } from './FlightDetails';
+import { PriceHistory } from './PriceHistory';
 import { PriceGrid } from './PriceGrid';
 import { defaultWatch, WatchForm } from './WatchForm';
 
-type View = { mode: 'list' } | { mode: 'form'; id: number | null; initial: WatchInput } | { mode: 'detail'; id: number };
+type View =
+  | { mode: 'list' }
+  | { mode: 'form'; id: number | null; initial: WatchInput }
+  | { mode: 'detail'; id: number }
+  | { mode: 'history'; watch: Watch };
 
 interface Props {
   server: ServerApi;
@@ -98,6 +103,9 @@ export function WatchesPanel({ server, settings, draft, onDraftUsed, onOpenSetti
       </>
     );
 
+  if (view.mode === 'history')
+    return <PriceHistory server={server} watch={view.watch} onBack={() => setView({ mode: 'detail', id: view.watch.id })} />;
+
   if (view.mode === 'detail')
     return (
       <WatchDetailView
@@ -106,6 +114,7 @@ export function WatchesPanel({ server, settings, draft, onDraftUsed, onOpenSetti
         notice={notice}
         onBack={() => { setNotice(null); setView({ mode: 'list' }); void reload(); }}
         onEdit={(w) => setView({ mode: 'form', id: w.id, initial: toInput(w) })}
+        onHistory={(w) => setView({ mode: 'history', watch: w })}
         onDelete={(w) => {
           if (confirm(`Delete "${w.name}" and all its prices?`)) void act(() => server.deleteWatch(w.id), { mode: 'list' });
         }}
@@ -166,10 +175,11 @@ interface DetailProps {
   notice: string | null;
   onBack: () => void;
   onEdit: (w: Watch) => void;
+  onHistory: (w: Watch) => void;
   onDelete: (w: Watch) => void;
 }
 
-function WatchDetailView({ server, id, notice, onBack, onEdit, onDelete }: DetailProps) {
+function WatchDetailView({ server, id, notice, onBack, onEdit, onHistory, onDelete }: DetailProps) {
   const [data, setData] = useState<WatchDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [airline, setAirline] = useState('');
@@ -221,6 +231,7 @@ function WatchDetailView({ server, id, notice, onBack, onEdit, onDelete }: Detai
         </div>
         <span className="buttons">
           <button className="btn ghost" onClick={() => void load()}>Refresh</button>
+          <button className="btn ghost" onClick={() => onHistory(w)}>History</button>
           <button className="btn ghost" onClick={() => onEdit(w)}>Edit</button>
           <button className="btn ghost danger" onClick={() => onDelete(w)}>Delete</button>
         </span>

@@ -14,8 +14,14 @@
   ],
   "vars": {
     // App origins allowed to call the API (Tauri app, Vite dev). Add the phone web app in step 5.
-    "ALLOWED_ORIGINS": "http://tauri.localhost,https://tauri.localhost,tauri://localhost,http://localhost:1420"
+    "ALLOWED_ORIGINS": "http://tauri.localhost,https://tauri.localhost,tauri://localhost,http://localhost:1420",
+    // Alert email sender: the domain already verified in Resend for v1.
+    "EMAIL_FROM": "Farewatch <farewatch@nexbuildcreations.ca>",
+    // Used in fare links inside emails.
+    "PUBLIC_URL": "https://farewatch-v2.farewatch.workers.dev"
   },
+  // Every 30 min: clean-up, fare alert retries, "checks have stopped" monitor (free plan allows this).
+  "triggers": { "crons": ["*/30 * * * *"] },
   "observability": { "enabled": true }
-  // Secrets (never in this file): npx wrangler secret put ADMIN_PASSWORD / RUNNER_TOKEN
+  // Secrets (never in this file): npx wrangler secret put ADMIN_PASSWORD / RUNNER_TOKEN / RESEND_API_KEY
 }

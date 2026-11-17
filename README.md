@@ -52,8 +52,25 @@ On github.com: repo > Settings > Secrets and variables > Actions > New repositor
 - `FAREWATCH_RUNNER_TOKEN` = the runner token from step 1
 
 Then Actions > "Watch check" > Run workflow, to test once. After that it runs by itself.
-GitHub pauses scheduled workflows in a public repo after 60 days with no commits; re-enable it in the Actions tab
-(step 4 adds an email alert when checks stop).
+GitHub pauses scheduled workflows in a public repo after 60 days with no commits. The server emails a warning
+at 50 days (push any commit to reset the timer) and a "checks have stopped" email if it happens; then click
+"Enable workflow" in the Actions tab.
+
+## 2b. Alert emails (Resend, free plan)
+
+The sender is set in `server\wrangler.jsonc` (`EMAIL_FROM`, domain verified in Resend). Make an API key on
+resend.com > API Keys > Create (permission: Sending access), then:
+
+    cd /d C:\Users\jaspi\Documents\Farewatch\v2\server
+    npx wrangler secret put RESEND_API_KEY
+
+In the app: Settings > Alert email > Send test email. What the server sends:
+- Fare digest when a watch has fares with price + reserve <= budget: new fares, or a drop of at least 2% when the
+  last alert for those dates is over 24 hours old. Watches with checked bags only alert when "alert even though bag
+  costs are unverified" is on. Fare links in the email expire after 30 days.
+- "Checks have stopped" when the runner has not asked for work for 3 hours, or there was no successful search for
+  6 hours, while a watch is active. A reminder every 3 days, and an email when checks work again.
+The cron (every 30 min) also retries failed emails and removes old data.
 
 ## 3. App
 

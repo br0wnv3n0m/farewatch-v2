@@ -1,0 +1,22 @@
+{
+  // Farewatch v2 watch server. Replaces the old "farewatch" Worker in step 4.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "farewatch-v2",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "farewatch-v2",
+      // Paste the id printed by: npx wrangler d1 create farewatch-v2
+      "database_id": "PASTE-DATABASE-ID-HERE",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    // App origins allowed to call the API (Tauri app, Vite dev). Add the phone web app in step 5.
+    "ALLOWED_ORIGINS": "http://tauri.localhost,https://tauri.localhost,tauri://localhost,http://localhost:1420"
+  },
+  "observability": { "enabled": true }
+  // Secrets (never in this file): npx wrangler secret put ADMIN_PASSWORD / RUNNER_TOKEN
+}

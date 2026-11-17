@@ -1,0 +1,60 @@
+# Farewatch v2 watch checks. Runs on GitHub's free runners (public repo).
+# Every 15 minutes it asks the server whether a watch is due (about 10 s);
+# the search job only runs when one is. Each watch is checked about once an hour.
+# Repository secrets: FAREWATCH_URL, FAREWATCH_RUNNER_TOKEN
+name: Watch check
+
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: farewatch-watch
+  cancel-in-progress: false
+
+jobs:
+  due:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      due: ${{ steps.due.outputs.due }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: engine
+      - name: Ask the server whether a watch is due
+        id: due
+        working-directory: engine
+        env:
+          FAREWATCH_URL: ${{ secrets.FAREWATCH_URL }}
+          FAREWATCH_RUNNER_TOKEN: ${{ secrets.FAREWATCH_RUNNER_TOKEN }}
+        run: python3 -m farewatch_engine.runner --due
+
+  check:
+    needs: due
+    if: needs.due.outputs.due == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: engine
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned engine libraries
+        working-directory: engine
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Offline engine tests
+        working-directory: engine
+        run: python -m unittest discover -s tests -t .
+      - name: Check watches and report to the server
+        working-directory: engine
+        env:
+          FAREWATCH_URL: ${{ secrets.FAREWATCH_URL }}
+          FAREWATCH_RUNNER_TOKEN: ${{ secrets.FAREWATCH_RUNNER_TOKEN }}
+        run: python -m farewatch_engine.runner

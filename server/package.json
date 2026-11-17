@@ -1,0 +1,20 @@
+{
+  "name": "farewatch-server",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.ts",
+    "db:migrate": "wrangler d1 migrations apply farewatch-v2 --remote",
+    "db:migrate:local": "wrangler d1 migrations apply farewatch-v2 --local"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261116.1",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.8.0",
+    "wrangler": "^4.0.0"
+  }
+}
